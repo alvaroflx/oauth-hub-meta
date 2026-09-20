@@ -18,6 +18,8 @@ COPY src ./src
 
 RUN npm run build
 
+RUN npm prune --omit=dev
+
 
 FROM node:20-bookworm-slim AS runtime
 
@@ -26,12 +28,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3300
 
-COPY package.json package-lock.json ./
-
-RUN npm ci \
-    && npm cache clean --force
-
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+
+COPY package.json package-lock.json ./
 COPY public ./public
 COPY locales ./locales
 
