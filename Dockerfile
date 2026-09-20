@@ -28,7 +28,7 @@ ENV PORT=3300
 
 COPY package.json package-lock.json ./
 
-RUN npm ci --omit=dev \
+RUN npm ci \
     && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
