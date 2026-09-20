@@ -1,34 +1,63 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# oauth-hub — orquestração Docker.
-#   1) cp .env.example .env   (e preencha PUBLIC_URL, SESSION_SECRET, ADMIN_PASSWORD…)
-#   2) docker compose up -d --build
-#
-# A porta INTERNA do container é fixada em 3300; escolha a porta do host com
-# HOST_PORT (padrão 3300). Ex.: HOST_PORT=8080 docker compose up -d
-# ─────────────────────────────────────────────────────────────────────────────
-services:
-  oauth-hub:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: oauth-hub:latest
-    container_name: oauth-hub
-    restart: unless-stopped
+# ============================================================
+# BUILDER
+# ============================================================
 
-    # Configuração e segredos (PUBLIC_URL, SESSION_SECRET, ADMIN_PASSWORD, META_*…).
-    env_file:
-      - .env
+FROM node:20-bookworm-slim AS builder
 
-    # Porta interna fixa em 3300 (sobrepõe qualquer PORT do .env); host = HOST_PORT.
-    environment:
-      - PORT=3300
-    ports:
-      - "${HOST_PORT:-3300}:3300"
+WORKDIR /app
 
-    # Persistência dos arquivos JSON (apps/canais/eventos/settings).
-    volumes:
-      - oauth-hub-data:/app/data
+# Toolchain para módulos nativos como node-pty
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3 \
+        make \
+        g++ \
+    && rm -rf /var/lib/apt/lists/*
 
-volumes:
-  oauth-hub-data:
-    driver: local
+COPY package.json package-lock.json ./
+
+# Instala todas as dependências
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+
+# Compila TypeScript
+RUN npm run build
+
+# Remove dependências exclusivamente de desenvolvimento
+# Mantém ws, node-pty etc. se estiverem em dependencies
+RUN npm prune --omit=dev
+
+
+# ============================================================
+# RUNTIME
+# ============================================================
+
+FROM node:20-bookworm-slim AS runtime
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3300
+
+# Dependências já compiladas no builder
+COPY --from=builder /app/node_modules ./node_modules
+
+COPY --from=builder /app/dist ./dist
+
+COPY package.json package-lock.json ./
+COPY public ./public
+COPY locales ./locales
+
+RUN mkdir -p /app/data \
+    && chown -R node:node /app/data
+
+EXPOSE 3300
+
+USER node
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:3300/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["node", "dist/index.js"]
