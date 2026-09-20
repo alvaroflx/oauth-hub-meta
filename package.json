@@ -3,30 +3,28 @@
   "version": "1.0.0",
   "description": "Standalone whitelabel hub to connect Meta channels (WhatsApp Business, Messenger, Instagram) and receive their webhook interactions. No external license or backend dependency.",
   "license": "AGPL-3.0-only",
-  "author": "Comunidade ZDG",
-  "homepage": "https://github.com/pedroherpeto/oauth-hub-zdg",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pedroherpeto/oauth-hub-zdg.git"
-  },
-  "bugs": {
-    "url": "https://github.com/pedroherpeto/oauth-hub-zdg/issues"
-  },
+
   "main": "dist/index.js",
+
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
+
   "engines": {
     "node": ">=18"
   },
+
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "express-rate-limit": "^7.4.0"
+    "express-rate-limit": "^7.4.0",
+    "node-pty": "^1.1.0",
+    "ws": "^8.21.3"
   },
+
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
@@ -34,9 +32,7 @@
     "@types/ws": "^8.18.1",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
-    "node-pty": "^1.1.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5",
-    "ws": "^8.21.3"
+    "typescript": "^5.4.5"
   }
 }
